@@ -216,9 +216,7 @@ Function Set-WorkplaceWebRequest {
    Get-WorkplaceAccountManagementWebRequest -$AccountManagementURI "https://www.facebook.com/scim/v1/Users/"
 #>
 Function Get-WorkplaceAccountManagementWebRequest {
-    PARAM
-    (
-        # Param1 help description
+    PARAM(
         [Parameter(Mandatory=$true)] 
         $AccountManagementURI
     )
@@ -228,6 +226,7 @@ Function Get-WorkplaceAccountManagementWebRequest {
         $ReturnArr = @()
         Write-Verbose "Web Request Setup Complete"
     }
+
     Process
     {
         Write-Verbose "Requesting data from $AccountManagementURI"
@@ -252,11 +251,10 @@ Function Get-WorkplaceAccountManagementWebRequest {
                     }
          } Else {
                 Write-Verbose "Result is a single item with no resources"
-              
-                # $ReturnArr = $ReturnArr + $RequestResult
          }
 
     }
+
     End
     {
         Return $ReturnArr
