@@ -678,7 +678,7 @@ Function Get-WorkplaceUser {
             write-verbose " Begining process section...."
            if (($mail -eq "") -and ($UserID -eq "")) {
                 Write-Verbose "NO EMAIL ADDRESS & NO USERID SPECIFIED - RETURNING ALL USERS" 
-                $RetArr = Get-WorkplaceAccountManagementWebRequest -AccountManagementURI "https://www.facebook.com/scim/v1/Users"
+                $RetArr = Get-WorkplaceAccountManagementWebRequest -AccountManagementURI "https://www.facebook.com/scim/v1/Users?"
             } 
             
            if(($mail -eq "") -and ($UserID -ne "")) {
