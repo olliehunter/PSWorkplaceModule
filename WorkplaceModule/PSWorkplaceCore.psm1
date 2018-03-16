@@ -20,9 +20,9 @@
 .Synopsis
    INTERNAL FUNCTION - Used to encrypt the API Key using a certificate passed to the function through the $cert variable
 .EXAMPLE
-   Encrypt-Key -$unprotectedcontent "Example unprotected string" -cert (Get-ChildItem "Cert:\CurrentUser\My\[PATH TO CERTIFICATE - NORMALLY THE THUMBPRINT")
+   Set-EncryptKey -$unprotectedcontent "Example unprotected string" -cert (Get-ChildItem "Cert:\CurrentUser\My\[PATH TO CERTIFICATE - NORMALLY THE THUMBPRINT")
 #>
-Function Encrypt-Key ($unprotectedcontent, $cert) {
+Function Set-EncryptKey ($unprotectedcontent, $cert) {
 
             [System.Reflection.Assembly]::LoadWithPartialName("System.Security") | Out-Null
 
@@ -46,9 +46,9 @@ Function Encrypt-Key ($unprotectedcontent, $cert) {
 .Synopsis
    INTERNAL FUNCTION - Used to decrypt the API Key using a certificate already stored in the certificate store
 .EXAMPLE
-   Decrypt-Key -$base64string "some base64 string"
+   Set-DecryptKey -$base64string "some base64 string"
 #>
-Function Decrypt-Key ($base64string) {
+Function Set-DecryptKey ($base64string) {
 
             [System.Reflection.Assembly]::LoadWithPartialName("System.Security") | Out-Null
 
@@ -239,7 +239,6 @@ Function Get-WorkplaceAccountManagementWebRequest {
                 $totalItems = $RequestResult.totalResults
                 $itemsReturned = $RequestResult.itemsPerPage
                 $itemsPerPage = $RequestResult.itemsPerPage
-                $startIndex = $RequestResult.startIndex
 
                 while($totalItems -gt $itemsReturned) {
                     Write-Verbose "More than one page of results. Performing further calls ($itemsReturned/$totalItems)"
@@ -263,25 +262,25 @@ Function Get-WorkplaceAccountManagementWebRequest {
 }
 
 <#
-.Synopsis
+    .Synopsis
    Short description
-.DESCRIPTION
+    .DESCRIPTION
    Long description
-.EXAMPLE
+    .EXAMPLE
    Example of how to use this cmdlet
-.EXAMPLE
+    .EXAMPLE
    Another example of how to use this cmdlet
-.INPUTS
+    .INPUTS
    Inputs to this cmdlet (if any)
-.OUTPUTS
+    .OUTPUTS
    Output from this cmdlet (if any)
-.NOTES
+    .NOTES
    General notes
-.COMPONENT
+    .COMPONENT
    The component this cmdlet belongs to
-.ROLE
+    .ROLE
    The role this cmdlet belongs to
-.FUNCTIONALITY
+    .FUNCTIONALITY
    The functionality that best describes this cmdlet
       
 function Set-WorkplaceAccountManagementWebRequest {
@@ -333,12 +332,12 @@ function Set-WorkplaceAccountManagementWebRequest {
 #> <#TODO - Implement This#>
 
 <#
-.Synopsis
+    .Synopsis
    INTERNAL FUNCTION - This function is used by all GRAPH API "DELETE" functions to delete data based upon a specific URI provided in the $WorkplaceURL Parameter. This functions primary purpose is to delete the data, and return success or error as an array of objects based upon the original request.
    The Header information for the HTTP request is provided by the decrypted private data variable "workplaceHeader" which is written to memory using the Start-WorkplaceModule function.
 
    ENSURE THAT Start-WorkplaceModule has been run successfully before running this command (using "Start-WorkplaceModule -Verbose" will provide detailed error output)
-.EXAMPLE
+    .EXAMPLE
    Remove-WorkplaceWebRequest -WorkplaceURL "https://graph.facebook.com/[groupid]/
 #>  <#TODO - Add Error Capabilities #>
 Function Remove-WorkplaceWebRequest {
@@ -699,6 +698,50 @@ Function Get-WorkplaceUser {
       }
 }
 
+
+<#
+.Synopsis
+   Returns an array of users currently available within the Workplace community. By specifying parameters the result can be scoped to an individual user
+.EXAMPLE
+   Get-WorkplaceUser
+
+   Returns all users within the community
+.EXAMPLE
+   Get-WorkplaceUser -EmailAddress "Example@Email.com"
+.EXAMPLE
+    Get-WorkplaceUser -UserID "Example User ID"
+#>
+Function Get-WorkplaceUnclaimedAccounts {
+    [CmdletBinding()]
+    PARAM()
+
+    Begin {
+            Write-Verbose "Beginning Preparation"
+            Write-Verbose "Getting All Workplace Users"
+            $AllUsers = Get-WorkplaceUser
+            $retArr = @()
+            Write-Verbose "Completed Preparation - Get-WorkplaceUnclaimedAccounts"
+        }
+
+    Process {
+            
+            write-verbose " Begining process section...."
+            foreach($user in $AllUsers){
+                if (-not $user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".Claimed){
+                     $retArr = $retArr + $user 
+                }
+             }
+         
+          }
+
+    End {
+        Write-Verbose "Final work in End block"
+        Return $RetArr
+      }
+}
+
+
+
 <#
 .Synopsis
    Use this Cmdlet to initialise the workplace module, you will need to perform this each time module is imported. During the first initialisation the user will be required to enter their API Access Token, which is subsiquently encrypted and stored with the module. This command also imports a certificate to the users personal store for encryption and decryption of the API Access Token.
@@ -708,7 +751,7 @@ Function Get-WorkplaceUser {
    Start-WorkplaceModule -Verbose
 #>
 Function Start-WorkplaceModule {
-[CmdletBinding()]
+    [CmdletBinding()]
     PARAM(    )
     <#This code runs during an import and validates the API key is correctly initialised for the session#>
     $Private:PrivateData = $MyInvocation.MyCommand.Module.PrivateData
@@ -717,13 +760,13 @@ Function Start-WorkplaceModule {
             Write-Verbose "Searching for API key from file"
                 $KeyPath = ((Get-Module WorkplaceModule).path.Substring(0,(Get-Module WorkplaceModule).Path.LastIndexOf("\"))) + "\Secrets\API_Key.txt"
                         if($Key = Get-Content -Path $KeyPath) {
-                            $MyInvocation.MyCommand.Module.PrivateData['workplaceAccessToken'] = Decrypt-Key -base64string (Get-Content -Path $KeyPath)
+                            $MyInvocation.MyCommand.Module.PrivateData['workplaceAccessToken'] = Set-DecryptKey -base64string (Get-Content -Path $KeyPath)
                         } Else { 
                                 Write-Verbose "No API Key found in KeyFile - Requesting Key from user"
                                 $ClearTextKey = Read-Host "Please enter workplace API key now:"
                                 $MyInvocation.MyCommand.Module.PrivateData['workplaceAccessToken'] = $ClearTextKey
                                 Write-Verbose "Saving API Key to file"
-                                Encrypt-Key -unprotectedcontent $ClearTextKey -cert $Cert | Out-File -FilePath $KeyPath -NoNewline -Width 9999
+                                Set-EncryptKey -unprotectedcontent $ClearTextKey -cert $Cert | Out-File -FilePath $KeyPath -NoNewline -Width 9999
                                 }
         } Else { 
             Write-Warning "Workplace Module Certificate is not installed in the personal store. Attempting to install the certificate"
