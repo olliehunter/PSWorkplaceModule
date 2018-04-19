@@ -42,10 +42,10 @@ Function Set-EncryptKey ($unprotectedcontent, $cert) {
 Function Set-DecryptKey ($base64string) {
     [System.Reflection.Assembly]::LoadWithPartialName("System.Security") | Out-Null
     $content = [Convert]::FromBase64String($base64string)
-    $env = New-Object Security.Cryptography.Pkcs.EnvelopedCms
-    $env.Decode($content)
-    $env.Decrypt()
-    $utf8content = [text.encoding]::UTF8.getstring($env.ContentInfo.Content)
+    $envelope = New-Object Security.Cryptography.Pkcs.EnvelopedCms
+    $envelope.Decode($content)
+    $envelope.Decrypt()
+    $utf8content = [text.encoding]::UTF8.getstring($envelope.ContentInfo.Content)
     return $utf8content
 }
 
@@ -55,6 +55,11 @@ Function Set-DecryptKey ($base64string) {
     .EXAMPLE
         Get-WorkplaceCommunityID
 #>
+
+Function Convert-UnixTimeToWindowsTime($Unixtime) {
+    $origin = New-Object -Type DateTime -ArgumentList 1970, 1, 1, 0, 0, 0, 0
+    Return $origin.AddSeconds($UnixTime)
+}
 Function Get-WorkplaceCommunityID {
     [CmdletBinding()]
     PARAM()
@@ -800,6 +805,41 @@ Function Start-WorkplaceModule {
 
     $MyInvocation.MyCommand.Module.PrivateData['workplaceHeader'] = @{"Authorization" = "Bearer " + $MyInvocation.MyCommand.Module.PrivateData['workplaceAccessToken']}
     Write-Verbose "Module Setup Completed Successfully"
+}
+
+Function Get-WorkplaceInvitedDate {
+    [CmdletBinding()]
+    PARAM()
+    Begin {
+        $retArr = @()
+        $users = Get-WorkplaceUser 
+    }
+    Process { 
+        foreach($user in $users) {
+
+            $UserID = $user.id
+            $DisplayName = $user.displayName
+            $UserName = $user.userName
+            $Invited = $user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".invited
+            $InvitedDate = Convert-UnixTimeToWindowsTime($user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".inviteDate)
+            $Claimed = $user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".claimed
+            $ClaimedDate = Convert-UnixTimeToWindowsTime($user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".claimDate)
+
+            $retObject = New-Object –TypeName PSObject
+            $retObject | Add-Member –MemberType NoteProperty –Name id –Value $UserID
+            $retObject | Add-Member –MemberType NoteProperty –Name UserName –Value $UserName
+            $retObject | Add-Member –MemberType NoteProperty –Name DisplayName –Value $DisplayName
+            $retObject | Add-Member -MemberType NoteProperty -Name Invited -Value $Invited
+            $retObject | Add-Member -MemberType NoteProperty -Name InvitedDate -Value $InvitedDate
+            $retObject | Add-Member -MemberType NoteProperty -Name Claimed -Value $Claimed
+            $retObject | Add-Member -MemberType NoteProperty -Name ClaimedDate -Value $ClaimedDate
+            $retArr = $retArr + $retObject
+            
+        }
+    }
+    End { 
+        Return $retArr
+    }
 }
 
 Write-Warning "The Workplace Powershell Module is released under the GNU GPL Licence"
