@@ -809,10 +809,19 @@ Function Start-WorkplaceModule {
 
 Function Get-WorkplaceInvitedDate {
     [CmdletBinding()]
-    PARAM()
+    PARAM(
+        [Parameter(Mandatory = $False, ValueFromPipelineByPropertyName = $True)]
+        [Alias('email', 'EmailAddress')]
+        [string]$mail
+    )
     Begin {
         $retArr = @()
-        $users = Get-WorkplaceUser 
+        if($mail) {
+            $users = Get-WorkplaceUser -mail $mail 
+        }
+        else {
+            $users = Get-WorkplaceUser         
+        }
     }
     Process { 
         foreach($user in $users) {
