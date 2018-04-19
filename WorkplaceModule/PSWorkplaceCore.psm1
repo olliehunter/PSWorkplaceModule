@@ -817,22 +817,14 @@ Function Get-WorkplaceInvitedDate {
     Process { 
         foreach($user in $users) {
 
-            $UserID = $user.id
-            $DisplayName = $user.displayName
-            $UserName = $user.userName
-            $Invited = $user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".invited
-            $InvitedDate = Convert-UnixTimeToWindowsTime($user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".inviteDate)
-            $Claimed = $user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".claimed
-            $ClaimedDate = Convert-UnixTimeToWindowsTime($user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".claimDate)
-
             $retObject = New-Object –TypeName PSObject
-            $retObject | Add-Member –MemberType NoteProperty –Name id –Value $UserID
-            $retObject | Add-Member –MemberType NoteProperty –Name UserName –Value $UserName
-            $retObject | Add-Member –MemberType NoteProperty –Name DisplayName –Value $DisplayName
-            $retObject | Add-Member -MemberType NoteProperty -Name Invited -Value $Invited
-            $retObject | Add-Member -MemberType NoteProperty -Name InvitedDate -Value $InvitedDate
-            $retObject | Add-Member -MemberType NoteProperty -Name Claimed -Value $Claimed
-            $retObject | Add-Member -MemberType NoteProperty -Name ClaimedDate -Value $ClaimedDate
+            $retObject | Add-Member –MemberType NoteProperty –Name id –Value $user.id
+            $retObject | Add-Member –MemberType NoteProperty –Name UserName –Value $user.userName
+            $retObject | Add-Member –MemberType NoteProperty –Name DisplayName –Value $user.displayName
+            $retObject | Add-Member -MemberType NoteProperty -Name Invited -Value $user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".invited
+            $retObject | Add-Member -MemberType NoteProperty -Name InvitedDate -Value (Convert-UnixTimeToWindowsTime($user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".inviteDate))
+            $retObject | Add-Member -MemberType NoteProperty -Name Claimed -Value $user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".claimed
+            $retObject | Add-Member -MemberType NoteProperty -Name ClaimedDate -Value (Convert-UnixTimeToWindowsTime($user."urn:scim:schemas:extension:facebook:accountstatusdetails:1.0".claimDate))
             $retArr = $retArr + $retObject
             
         }
